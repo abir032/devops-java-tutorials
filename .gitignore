@@ -1,0 +1,27 @@
+# --- Java / Maven ---
+target/
+!.mvn/wrapper/maven-wrapper.jar
+*.class
+*.log
+hs_err_pid*
+
+# --- Node ---
+node_modules/
+dist/
+*.tsbuildinfo
+npm-debug.log*
+
+# --- Environment files (never commit secrets; .env.example is fine) ---
+.env
+.env.*
+!.env.example
+
+# --- IDEs / OS ---
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+.factorypath
+.DS_Store
