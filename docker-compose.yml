@@ -1,0 +1,68 @@
+name: orderdesk
+
+services:
+  db:
+    image: mariadb:11.8
+    env_file: .env.db
+    volumes:
+      - db-data:/var/lib/mysql
+    networks: [data-net]
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    networks: [data-net]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:4
+    networks: [data-net]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    image: od-backend:v1
+    env_file: backend/.env.docker
+    networks: [web-net, data-net]
+    deploy:
+      replicas: 2
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    image: od-frontend:v1
+    ports:
+      - "8080:80"
+    networks: [web-net]
+    depends_on: [backend]
+    restart: unless-stopped
+
+networks:
+  web-net:
+  data-net:
+    internal: true
+
+volumes:
+  db-data:
