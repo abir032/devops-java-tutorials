@@ -259,5 +259,15 @@ ssh -i /path/to/key.pem -N \
   ubuntu@<server-public-ip>
 ```
 
-Dockerfiles, docker-compose, nginx config and Terraform are intentionally **not** included –
-writing them is the exercise.
+## Docker
+
+Dockerfiles, `docker-compose.yml` and the nginx config are included. The **[Setup Guide](doc/SETUP.md)**
+covers the architecture (public frontend, private data network), running every container by hand,
+and Docker Compose with two backend replicas.
+
+```bash
+cp .env.db.example .env.db && cp backend/.env.docker.example backend/.env.docker   # then fill in the passwords
+docker compose up -d --build
+```
+
+Open <http://localhost:8080>. Terraform for AWS is intentionally **not** included – writing it is the exercise.
