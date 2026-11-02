@@ -181,6 +181,9 @@ These design choices are what let you run several backend instances safely:
 | RabbitMQ | Amazon MQ for RabbitMQ (TLS on port 5671: also set `SPRING_RABBITMQ_SSL_ENABLED=true`) |
 | `.env` values | ECS task env vars, with passwords from Secrets Manager / SSM Parameter Store |
 
+The implemented version of this table (EC2 + Docker, RDS, ElastiCache, Amazon MQ, SSM) is described in
+[doc/AWS-INFRA.md](doc/AWS-INFRA.md).
+
 ## Ports
 
 | Port  | Service                          |
@@ -270,4 +273,11 @@ cp .env.db.example .env.db && cp backend/.env.docker.example backend/.env.docker
 docker compose up -d --build
 ```
 
-Open <http://localhost:8080>. Terraform for AWS is intentionally **not** included – writing it is the exercise.
+Open <http://localhost:8080>.
+
+## AWS (Terraform)
+
+The Terraform code in [infra/](infra/) deploys the app on AWS: two VPCs joined by peering, nginx and two
+backends on EC2, and RDS, ElastiCache and Amazon MQ as the data tier. The **[AWS Infrastructure Guide](doc/AWS-INFRA.md)**
+covers the architecture, security groups, every Terraform file, step-by-step deployment, tests, costs
+and troubleshooting.

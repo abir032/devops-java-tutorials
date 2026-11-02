@@ -11,6 +11,13 @@ dist/
 *.tsbuildinfo
 npm-debug.log*
 
+# --- Terraform (commit .terraform.lock.hcl) ---
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+
 # --- Environment files (never commit secrets; .env.example is fine) ---
 .env
 .env.*
