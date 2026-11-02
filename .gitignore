@@ -26,3 +26,10 @@ npm-debug.log*
 .settings/
 .factorypath
 .DS_Store
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars

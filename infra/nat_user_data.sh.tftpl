@@ -1,0 +1,25 @@
+#!/bin/bash
+# NAT instance: runs once, as root, on first boot.
+set -euxo pipefail
+
+# 1. act as a router
+echo 'net.ipv4.ip_forward = 1' > /etc/sysctl.d/99-nat.conf
+sysctl --system
+
+# 2. find the main interface (ens5 on most EC2s)
+IFACE=$(ip route show default | awk '{print $5; exit}')
+
+# 3. NAT the backend subnet out of that interface
+iptables -t nat -A POSTROUTING -o "$IFACE" -s ${backend_cidr} -j MASQUERADE
+iptables -A FORWARD -s ${backend_cidr} -j ACCEPT
+iptables -A FORWARD -d ${backend_cidr} -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+# 4. keep the rules after a reboot
+export DEBIAN_FRONTEND=noninteractive
+echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+echo iptables-persistent iptables-persistent/autosave_v6 boolean false | debconf-set-selections
+apt-get -o DPkg::Lock::Timeout=600 update
+apt-get -o DPkg::Lock::Timeout=600 install -y iptables-persistent
+netfilter-persistent save
+
+echo "nat ready" > /var/tmp/nat-ready
