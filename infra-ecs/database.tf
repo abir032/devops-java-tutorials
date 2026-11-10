@@ -28,8 +28,8 @@ resource "aws_db_instance" "main" {
   storage_encrypted = true
 
   db_name  = "orderdesk" # Flyway creates the tables inside this empty database
-  username = "dbadmin"
-  password = random_password.db_master.result
+  username = "orderdesk" # the app logs in as the RDS master user (simple; see the hardening note in the guide)
+  password = random_password.db_app.result
 
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]

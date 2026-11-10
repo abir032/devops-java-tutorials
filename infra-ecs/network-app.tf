@@ -69,7 +69,7 @@ resource "aws_route_table_association" "backend" {
 // AZ for the ALB 
 
 resource "aws_subnet" "frontend_b" {
-   vpc_id                  = aws_vpc.app.id
+  vpc_id                  = aws_vpc.app.id
   cidr_block              = cidrsubnet(var.app_vpc_cidr, 8, 3) # 10.40.3.0/24
   availability_zone       = local.az_b
   map_public_ip_on_launch = true

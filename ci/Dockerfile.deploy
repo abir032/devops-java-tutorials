@@ -1,0 +1,7 @@
+# Jenkins container agent: AWS CLI + jq (the official amazon/aws-cli image has no jq)
+FROM amazon/aws-cli:latest
+
+RUN (command -v dnf >/dev/null && dnf install -y jq || yum install -y jq) \
+ && (dnf clean all || yum clean all) \
+ && jq --version \
+ && aws --version
