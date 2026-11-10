@@ -1,0 +1,46 @@
+#!/bin/bash
+# Build agent: runs once, as root, on first boot.
+set -euxo pipefail
+export DEBIAN_FRONTEND=noninteractive
+
+# 2 GB swap: Maven and Docker builds can spike
+fallocate -l 2G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
+apt-get -o DPkg::Lock::Timeout=600 update
+apt-get -o DPkg::Lock::Timeout=600 install -y ca-certificates curl git jq unzip openjdk-21-jre-headless
+
+# Docker CE (note $UBUNTU_CODENAME has no braces on purpose: templatefile would treat it as a template variable)
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+. /etc/os-release
+cat > /etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $UBUNTU_CODENAME
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+apt-get -o DPkg::Lock::Timeout=600 update
+apt-get -o DPkg::Lock::Timeout=600 install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+systemctl enable --now docker
+
+# AWS CLI (on the host, for "docker login" to ECR); the link makes it visible to non-login shells
+snap install aws-cli --classic
+ln -sf /snap/bin/aws /usr/local/bin/aws
+
+# the user Jenkins logs in as
+useradd -m -s /bin/bash jenkins
+usermod -aG docker jenkins
+install -d -o jenkins -g jenkins -m 700 /home/jenkins/.ssh
+install -d -o jenkins -g jenkins /home/jenkins/agent /home/jenkins/.m2
+echo '${controller_public_key}' > /home/jenkins/.ssh/authorized_keys
+chown jenkins:jenkins /home/jenkins/.ssh/authorized_keys
+chmod 600 /home/jenkins/.ssh/authorized_keys
+
+echo "agent ready" > /var/tmp/agent-ready
