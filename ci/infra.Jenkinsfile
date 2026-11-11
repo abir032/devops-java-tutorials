@@ -32,26 +32,21 @@ pipeline {
                 }
             }
             steps {
-                withCredentials([
-                    string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
-                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
-                ]) {
-                    dir(params.TF_DIR) {
-                        sh '''
-                            if [ "$TF_DIR" = "infra-ecs" ]; then
-                                test -n "$TF_VAR_my_ip" || { echo "MY_IP is empty for infra-ecs."; exit 1; }
-                            fi
-                            terraform version
-                            terraform fmt -check -diff || echo "WARNING: some files are not formatted"
-                            terraform init
-                            terraform validate
-                            if [ "$ACTION" = "destroy" ]; then
-                                terraform plan -destroy -out=tfplan
-                            else
-                                terraform plan -out=tfplan
-                            fi
-                        '''
-                    }
+                dir(params.TF_DIR) {
+                    sh '''
+                        if [ "$TF_DIR" = "infra-ecs" ]; then
+                            test -n "$TF_VAR_my_ip" || { echo "MY_IP is empty for infra-ecs."; exit 1; }
+                        fi
+                        terraform version
+                        terraform fmt -check -diff || echo "WARNING: some files are not formatted"
+                        terraform init
+                        terraform validate
+                        if [ "$ACTION" = "destroy" ]; then
+                            terraform plan -destroy -out=tfplan
+                        else
+                            terraform plan -out=tfplan
+                        fi
+                    '''
                 }
             }
         }
@@ -76,14 +71,9 @@ pipeline {
                 }
             }
             steps {
-                withCredentials([
-                    string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
-                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
-                ]) {
-                    dir(params.TF_DIR) {
-                        sh 'terraform apply tfplan'
-                        sh 'terraform output || true'
-                    }
+                dir(params.TF_DIR) {
+                    sh 'terraform apply tfplan'
+                    sh 'terraform output || true'
                 }
             }
         }
