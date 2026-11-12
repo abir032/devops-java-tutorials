@@ -1,0 +1,35 @@
+# Order Desk: build for CodePipeline / CodeBuild (see infra-pipeline/)
+# Builds both images, pushes them to ECR, and writes one imagedefinitions.json per ECS service.
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - REGISTRY=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - TAG=$CODEBUILD_BUILD_NUMBER-$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-7)
+      - echo "Image tag $TAG"
+      - aws ecr get-login-password | docker login --username AWS --password-stdin $REGISTRY
+  build:
+    commands:
+      # the Dockerfiles are multi-stage: Maven and Node run inside the build
+      - docker build -t $REGISTRY/orderdesk-backend:$TAG backend
+      - docker build --build-arg VITE_API_URL= -t $REGISTRY/orderdesk-frontend:$TAG frontend
+  post_build:
+    commands:
+      - docker push $REGISTRY/orderdesk-backend:$TAG
+      - docker push $REGISTRY/orderdesk-frontend:$TAG
+      # "name" must be the container name in the ECS task definition
+      - printf '[{"name":"backend","imageUri":"%s"}]' $REGISTRY/orderdesk-backend:$TAG > backend/imagedefinitions.json
+      - printf '[{"name":"frontend","imageUri":"%s"}]' $REGISTRY/orderdesk-frontend:$TAG > frontend/imagedefinitions.json
+
+# identifiers must match the output artifact names of the Build action in the pipeline
+artifacts:
+  secondary-artifacts:
+    backend_out:
+      base-directory: backend
+      files:
+        - imagedefinitions.json
+    frontend_out:
+      base-directory: frontend
+      files:
+        - imagedefinitions.json
