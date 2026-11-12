@@ -2,6 +2,11 @@
 # Builds both images, pushes them to ECR, and writes one imagedefinitions.json per ECS service.
 version: 0.2
 
+env:
+  variables:
+    # the legacy builder uses base images that are already local and never asks Docker Hub
+    DOCKER_BUILDKIT: "0"
+
 phases:
   pre_build:
     commands:
@@ -9,13 +14,19 @@ phases:
       - TAG=$CODEBUILD_BUILD_NUMBER-$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-7)
       - echo "Image tag $TAG"
       - aws ecr get-login-password | docker login --username AWS --password-stdin $REGISTRY
+      # Docker Hub limits anonymous pulls and CodeBuild shares IPs (429 Too Many Requests).
+      # Pull the same official images from the AWS Public ECR mirror and tag them with the
+      # names the Dockerfiles use (FROM lines).
+      - |
+        for img in maven:3.9-eclipse-temurin-21 eclipse-temurin:21-jre node:24-alpine nginx:1.28-alpine; do
+          docker pull public.ecr.aws/docker/library/$img
+          docker tag public.ecr.aws/docker/library/$img $img
+        done
   build:
     commands:
       # the Dockerfiles are multi-stage: Maven and Node run inside the build
       - docker build -t $REGISTRY/orderdesk-backend:$TAG backend
       - docker build --build-arg VITE_API_URL= -t $REGISTRY/orderdesk-frontend:$TAG frontend
-  post_build:
-    commands:
       - docker push $REGISTRY/orderdesk-backend:$TAG
       - docker push $REGISTRY/orderdesk-frontend:$TAG
       # "name" must be the container name in the ECS task definition
