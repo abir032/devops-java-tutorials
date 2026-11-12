@@ -206,6 +206,13 @@ data "aws_iam_policy_document" "pipeline" {
     resources = ["${local.ecs_arn}:service/${var.ecs_cluster_name}/*"]
   }
 
+  # the deploy action tags the task definition revision it registers
+  statement {
+    sid       = "EcsTagTaskDefinition"
+    actions   = ["ecs:TagResource"]
+    resources = ["${local.ecs_arn}:task-definition/*"]
+  }
+
   statement {
     sid       = "PassEcsRoles"
     actions   = ["iam:PassRole"]
